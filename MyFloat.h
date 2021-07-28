@@ -23,6 +23,9 @@
     
     	//comparison
     	bool operator==(const float rhs) const;
+      friend bool operator<(const MyFloat& lhs, const MyFloat& rhs);
+
+      void normalize(void);
     
     private:
 		  unsigned int sign;

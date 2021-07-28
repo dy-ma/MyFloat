@@ -15,4 +15,4 @@ MyFloat.o: MyFloat.h MyFloat.cpp
 	g++ -g -Wall -std=c++11 -c -o MyFloat.o MyFloat.cpp
 	
 clean:
-	rm main.o MyFloat.o fpArithmetic.out test.out *.o
+	rm -f main.o MyFloat.o fpArithmetic.out test.out *.o
