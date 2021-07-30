@@ -38,6 +38,5 @@
     	//cout << "I did it = " << boolalpha << (mfres == fres) << endl;
     }
   
-  
     return 0;
   }

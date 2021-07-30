@@ -23,10 +23,11 @@
     
     	//comparison
     	bool operator==(const float rhs) const;
+    	bool operator==(const MyFloat rhs) const;
       friend bool operator<(const MyFloat& lhs, const MyFloat& rhs);
 
-      void normalize(void);
-    
+      // void normalize(void);
+      static MyFloat abs(const MyFloat& f);
     private:
 		  unsigned int sign;
 		  unsigned int exponent;

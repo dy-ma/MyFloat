@@ -25,44 +25,60 @@ ostream& operator<<(std::ostream &strm, const MyFloat &f){
 
 MyFloat MyFloat::operator+(const MyFloat& rhs) const{
 	// cout << "operator+ called" << endl; // remove
-	// cout << *this << " + " << rhs << endl; // remove
-	if (rhs.sign == 1) { 	  // a + -b == a - b
-		MyFloat rhscpy(rhs);  // -a + -b == -a - b == -(a + b)
-		rhscpy.sign = 0;
-		return (*this - rhscpy);
-	}
-	else if (sign == 1) { // -a + b == b - a
-		MyFloat cpy(*this);
-		cpy.sign = 0;
-		return (rhs - cpy);
-	}
-	// now both are positive
 	if (exponent == 0 && mantissa == 0) return rhs; // adding 0 cases
 	else if (rhs.exponent == 0 && rhs.mantissa == 0) return *this;
-	else if (*this < rhs) return (rhs + *this);
+	else if (abs(*this) == abs(rhs)) {
+		if (sign != rhs.sign) return 0;
+	}
+	if (exponent < rhs.exponent) return (rhs + *this); // TODO: just compare exp
 	
 	// actual addition
 	MyFloat ans;
-	MyFloat x1(*this);
-	MyFloat x2(rhs);
+	MyFloat x1(*this); // larger exponent
+	MyFloat x2(rhs); // smaller exponent
 	ans.exponent = x1.exponent;
 	unsigned exp_diff = x1.exponent - x2.exponent;
+	// append 1, shift
+	x1.mantissa |= (1 << 23); // append implied 1
+	x2.mantissa |= (1 << 23); // append implied 1
+	int borrow = x2.mantissa >> (exp_diff - 1); // if 1, borrow 
+	borrow &= 1;
 	x2.mantissa >>= exp_diff; // exponents should be equal
-	x2.mantissa |= (1 << (23 - exp_diff) ); // append 1
-	ans.mantissa = x1.mantissa + x2.mantissa;
-	// if a carry happens, increment exponent
-	if (ans.mantissa < x1.mantissa || ans.mantissa < x2.mantissa) { // overflow deteced
+	if (x1.sign == x2.sign) {
+		// a + b, -a + -b
+		ans.mantissa = x1.mantissa + x2.mantissa;
+		ans.sign = x1.sign;
+		if (ans.mantissa > 0x7fffff) { // overflow detected, carry
+			ans.exponent++;
+		}
+		ans.exponent--;
+	}
+	else { // subtract
+		// -a + b, a + -b
+		ans.mantissa = x1.mantissa - x2.mantissa;
+		ans.sign = x1.sign;
+		if (borrow) {
+			if (ans.mantissa == 0) {
+				ans.exponent--;
+			}
+			ans.mantissa--;
+		}
+	}
+	// normalize
+	// make fit
+	while (ans.mantissa > 0xFFFFFF) {
+		ans.mantissa >>= 1;
 		ans.exponent++;
 	}
-	// while (ans.mantissa >> 22 != 1) {
-		// ans.mantissa >>= 1;
-	// }
-	// ans.mantissa >>= 1;
-	// normalize answer
-	// ans.mantissa <<= exp_diff; // how tf
-	// ans.exponent += exp_diff; // how tf
+	// leading 1
+	while (ans.mantissa < (1 << 23)) {
+		ans.mantissa <<= 1;
+		ans.exponent--;
+	}
+	// remove leading 1
+	ans.mantissa &= ((1 << 23) - 1);
 
-	cout << ans.sign << " " << ans.exponent << " " << ans.mantissa << endl;
+	// cout << ans.sign << " " << ans.exponent << " " << ans.mantissa << endl;
 
 	return ans; //you don't have to return *this. it's just here right now so it will compile
 }
@@ -70,7 +86,10 @@ MyFloat MyFloat::operator+(const MyFloat& rhs) const{
 MyFloat MyFloat::operator-(const MyFloat& rhs) const{
 	// cout << "operator- called" << endl; // remove
 	// cout << *this << " - " << rhs << endl; // remove
-	if (rhs.sign == 1) { 	// a - -b == a + b
+	if (*this == rhs) {
+		return 0;
+	}
+	else if (rhs.sign == 1) { 	// a - -b == a + b
 		MyFloat rhscpy(rhs); // -a - -b == -a + b == b - a
 		rhscpy.sign = 0;
 		return (*this + rhscpy);
@@ -92,7 +111,9 @@ MyFloat MyFloat::operator-(const MyFloat& rhs) const{
 		ans.sign = 1;
 		return ans;
 	}
-	return *this; //you don't have to return *this. it's just here right now so it will compile
+	MyFloat rhscpy(rhs);
+	rhscpy.sign = 1;
+	return (*this + rhscpy); //you don't have to return *this. it's just here right now so it will compile
 }
 
 bool MyFloat::operator==(const float rhs) const{
@@ -106,14 +127,21 @@ bool MyFloat::operator==(const float rhs) const{
 	return false; //this is just a stub so your code will compile
 }
 
+bool MyFloat::operator==(const MyFloat rhs) const{
+	if (sign == rhs.sign) {
+		if (exponent == rhs.exponent) {
+			if (mantissa == rhs.mantissa)
+				return true;
+		}
+	}
+	return false; //this is just a stub so your code will compile
+}
+
+
 bool operator<(const MyFloat& lhs, const MyFloat& rhs) {
 	float f1 = lhs.packFloat(), f2 = rhs.packFloat();
 	if (f1 < f2) return true;
 	else return false;
-}
-
-void normalize(void) {
-	
 }
 
 void MyFloat::unpackFloat(float f) {
@@ -177,5 +205,8 @@ float MyFloat::packFloat() const{
 }//packFloat
 //
 
-
-
+ MyFloat MyFloat::abs(const MyFloat& f) {
+	MyFloat x(f);
+	x.sign = 0;
+	return x;
+}
